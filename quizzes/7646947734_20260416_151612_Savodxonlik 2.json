@@ -1,0 +1,18 @@
+{
+  "id": "7646947734_20260416_151612_Savodxonlik 2",
+  "name": "Savodxonlik 2",
+  "user_id": 7646947734,
+  "created_at": "2026-04-16T15:16:12.175150",
+  "updated_at": "2026-04-16T15:16:12.175150",
+  "questions": [
+    {
+      "question": "Olma nima?",
+      "options": [
+        "meva",
+        "sabzavot",
+        "hc narsa"
+      ],
+      "correct_option_id": 2
+    }
+  ]
+}

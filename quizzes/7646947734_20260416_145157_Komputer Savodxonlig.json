@@ -1,0 +1,166 @@
+{
+  "id": "7646947734_20260416_145157_Komputer Savodxonlig",
+  "name": "Komputer Savodxonligi",
+  "user_id": 7646947734,
+  "created_at": "2026-04-16T14:51:57.164673",
+  "updated_at": "2026-04-16T14:51:57.164673",
+  "questions": [
+    {
+      "question": "Word dasturiga qaysi menyudan jadval qo‘shiladi?",
+      "options": [
+        "“Vstavka” menyusi orqali",
+        "“Glavnaya” orqali",
+        "“Maket” menyusi orqali"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturida yangi word hujjat yaratish uchun qaysi menyudan foydalaniladi?",
+      "options": [
+        "Вставка",
+        "Файл",
+        "Главная"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturida matnni qalin holatga keltirish uchun qaysi klaviyaturlar kombinatsiyasidan foydalaniladi?",
+      "options": [
+        "Ctrl + I",
+        "Ctrl + C",
+        "Ctrl + B"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturida matnni o‘ngga  tekislash uchun qaysi tugmalar birikmasi ishlatiladi?",
+      "options": [
+        "Ctrl + L",
+        "Ctrl + H",
+        "Ctrl + R",
+        "Microsoft Word – bu:",
+        "Elektron jadval muharriri",
+        "Ma’lumotlar ombori",
+        "Matn muharriri"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Hujjatga rasm qo'shish uchun qaysi buyruq ishlatiladi?",
+      "options": [
+        "Таблица",
+        "Рисунок",
+        "Диаграмма"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Qidiruv oynasini ochish uchun qaysi tugmalardan foydalaniladi?",
+      "options": [
+        "Ctrl+Alt",
+        "Ctrl+E",
+        "Ctrl+F"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word hujjatni kitobcha (Алъбомная) shakliga keltirish uchun qaysi bolimdan foydalaniladi?",
+      "options": [
+        "Дизайн",
+        "Ссылки",
+        "Макет"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturida figura rangini o‘zgartirish uchun qaysi tugma ishlatiladi?",
+      "options": [
+        "Заливка фигуры",
+        "Контур фигуры",
+        "Формат фигуры"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Diagramma nima?",
+      "options": [
+        "Raqamli ma’lumotlarni grafik shaklda ko‘rsatuvchi vosita",
+        "Matnli ma’lumotlarni vizual ko‘rinishda ifodalovchi vosita",
+        "Shakl yaratadigan figura",
+        "Microsoft Excel – bu:",
+        "ma’lumotlar bazasi",
+        "elektron jadval muharriri",
+        "elektron pochta muharriri"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Microsoft Excelda formulalar yozish qaysi belgidan foydalaniladi?",
+      "options": [
+        "A1:A5 diapazonidagi qiymatlar uchun minimal (eng kichik qiymat) qiymatni toping!",
+        "=МИН(A5:A20)",
+        "=МИН(A1:A5)",
+        "=МАКС(A1:A5)",
+        "A1:A3 kataklardagi qiymatlarni qo'shing (A1 = 2; A2 = 3; A3 = 5)",
+        "=СЕГОДНЯ(yil;oy;sana)",
+        "=СУММ(A1:A3)",
+        "=СРЗНАЧ(A1:A5)"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "ОКРУГЛ formulasi nima qiladi?",
+      "options": [
+        "a)  Sonlarni qo’shadi",
+        "b) O’rtacha qiymatni topadi",
+        "c) Sonni yaxlitlaydi"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "PowerPoint dasturida yangi slayd qo’shish uchun qaysi tugmalardan foydalaniladi?",
+      "options": [
+        "a)  Ctrl + M",
+        "b) Ctrl + T",
+        "c) Ctrl + B"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Slayddagi matn yoki elementlarga harakat qoshish uchun qaysi bolimdan foydalaniladi?",
+      "options": [
+        "a) Perexod",
+        "b) Animatsiya",
+        "c) Vstavka"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Slaydlar orasidagi o‘tish effektlari qayerda sozlanadi?",
+      "options": [
+        "Perexod",
+        "Dizayn",
+        "Maket"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Slaydga audio qo‘shish uchun qaysi bolimdan foydalaniladi?",
+      "options": [
+        "a) Animatsiya",
+        "b) Vstavka",
+        "c) Vid"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "PowerPointda slayd fonini o’zgartirish uchun qaysi tugmadan foydalaniladi?",
+      "options": [
+        "a) Zalivka figura",
+        "b) Deystvie",
+        "c) Format fona"
+      ],
+      "correct_option_id": 0
+    }
+  ]
+}

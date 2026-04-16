@@ -1,0 +1,29 @@
+Q: Python qaysi tilida yozilgan?
+A: C++*
+A: Java
+A: C#
+A: Go
+
+Q: Python versiyasi nechta?
+A: Python 2
+A: Python 3*
+A: Python 4
+A: Python 5
+
+Q: Django nima?
+A: Ma'lumot bazasi
+A: Python web framework*
+A: Grafik kutubxona
+A: Mobil ilovasi
+
+Q: JSON qanday format?
+A: Matn formati
+A: Rasm formati
+A: Ma'lumot almashtirish formati*
+A: Video formati
+
+Q: Terminal nima?
+A: Grafik interfeys
+A: Buyruq qatori interfeys*
+A: Brauzer
+A: Grafik redaktor
