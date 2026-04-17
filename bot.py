@@ -49,6 +49,7 @@ WAITING_FOR_NEW_QUIZ_QUESTION = 8
 WAITING_FOR_NEW_QUIZ_OPTIONS = 9
 WAITING_FOR_NEW_QUIZ_CORRECT = 10
 WAITING_FOR_QUIZ_ACTION = 11
+WAITING_FOR_QUIZ_ID = 12
 
 # Store temporary data
 user_data = {}
@@ -109,7 +110,7 @@ async def newquiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return WAITING_FOR_NEW_QUIZ_NAME
 
 async def quizzes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show user's quizzes"""
+    """Show user's quizzes with their IDs"""
     user_id = update.message.from_user.id
     quizzes = storage.get_user_quizzes(user_id)
     
@@ -117,17 +118,16 @@ async def quizzes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Sizda hali quizlar yo'q.")
         return
     
-    text = "📋 **Sizning Quizlaringiz:**\n\n"
+    text = "📋 <b>Sizning Quizlaringiz:</b>\n\n"
     
-    for quiz in quizzes[:10]:
-        text += f"📌 *{quiz['name']}* ({len(quiz['questions'])} savol)\n"
-        text += f"   ID: `{quiz['id']}`\n"
-        text += f"   Sana: {quiz['created_at'][:10]}\n\n"
+    for quiz in quizzes[:20]:
+        text += f"📌 <b>{quiz['name']}</b>\n"
+        text += f"   🆔 ID: <code>{quiz['id']}</code> | 📝 {len(quiz['questions'])} savol | 📅 {quiz['created_at'][:10]}\n\n"
     
-    if len(quizzes) > 10:
-        text += f"\n... va {len(quizzes) - 10} ta ko'proq\n"
+    if len(quizzes) > 20:
+        text += f"... va {len(quizzes) - 20} ta ko'proq\n"
     
-    await update.message.reply_text(text, parse_mode='Markdown')
+    await update.message.reply_text(text, parse_mode='HTML')
 
 async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Start a specific quiz by ID"""
@@ -155,6 +155,68 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(f"▶️ Quiz boshlanmoqda: *{quiz['name']}*", parse_mode='Markdown')
     await show_quiz_question(context, chat_id, quiz)
+
+async def startquiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start quiz by entering its ID"""
+    user_id = update.effective_user.id
+    quizzes = storage.get_user_quizzes(user_id)
+    
+    if not quizzes:
+        await update.message.reply_text(
+            "🤔 Sizda quiz yo'q. /newquiz yordamida yangi quiz yarating!"
+        )
+        return ConversationHandler.END
+    
+    text = "▶️ <b>Quiz boshlash uchun ID ni kiriting:</b>\n\n"
+    text += "📋 <b>Mavjud quizlar:</b>\n\n"
+    
+    for quiz in quizzes[:15]:
+        text += f"🆔 <code>{quiz['id']}</code> - {quiz['name']} ({len(quiz['questions'])} savol)\n"
+    
+    if len(quizzes) > 15:
+        text += f"... va {len(quizzes) - 15} ta ko'proq\n"
+    
+    text += "\n💬 ID ni yozing (masalan: 123abc456)"
+    
+    await update.message.reply_text(text, parse_mode='HTML')
+    return WAITING_FOR_QUIZ_ID
+
+async def quiz_id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle quiz ID input for starting quiz"""
+    quiz_id = update.message.text.strip()
+    
+    if not quiz_id or len(quiz_id) < 3:
+        await update.message.reply_text(
+            "❌ Quiz ID juda qisqa!\n\n"
+            "Iltimos, to'g'ri ID kiriting.",
+            parse_mode='HTML'
+        )
+        return WAITING_FOR_QUIZ_ID
+    
+    quiz = storage.get_quiz(quiz_id)
+    
+    if not quiz:
+        keyboard = [[InlineKeyboardButton("🏠 Bosh menyu", callback_data='back_menu')]]
+        await update.message.reply_text(
+            f"❌ Quiz topilmadi: <code>{quiz_id}</code>\n\n"
+            "Iltimos, mavjud ID-lardan birini kiriting.",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML'
+        )
+        return WAITING_FOR_QUIZ_ID
+    
+    # Start quiz
+    chat_id = update.message.chat_id
+    active_quizzes[chat_id] = {
+        'quiz': quiz,
+        'current_q': 0,
+        'answers': {}
+    }
+    
+    await update.message.reply_text(f"▶️ Quiz boshlanmoqda: <b>{quiz['name']}</b>", parse_mode='HTML')
+    await show_quiz_question(context, chat_id, quiz)
+    
+    return ConversationHandler.END
 
 async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Stop active quiz"""
@@ -977,15 +1039,32 @@ async def file_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle plain text quiz input - ONLY IN WAITING_FOR_TEXT STATE"""
     text = update.message.text.strip()
+    user_id = update.message.from_user.id
+    
+    # Track failed attempts
+    if 'text_attempts' not in context.user_data:
+        context.user_data['text_attempts'] = 0
+    else:
+        context.user_data['text_attempts'] += 1
+    
+    # After 5 failed attempts, go back to main menu
+    if context.user_data['text_attempts'] > 5:
+        context.user_data['text_attempts'] = 0
+        await update.message.reply_text(
+            "⚠️ Juda ko'p urinish. Asosiy menyuga qaytdim.",
+            parse_mode='HTML'
+        )
+        return await start(update, context)
     
     # Check minimum length
     if not text or len(text) < 10:
         keyboard = [
-            [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')]
+            [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')],
+            [InlineKeyboardButton("🏠 Bosh menyu", callback_data='back_menu')]
         ]
         
         await update.message.reply_text(
-            "❌ Test matni juda qisqa yoki noto'g'ri formatda.\n\n"
+            "❌ Test matni juda qisqa yoki noto'g'ri formatda!\n\n"
             "<b>Q/A Format:</b>\n"
             "Q: Savol?\n"
             "A: Javob 1\n"
@@ -1005,11 +1084,12 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if not questions:
             keyboard = [
-                [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')]
+                [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')],
+                [InlineKeyboardButton("🏠 Bosh menyu", callback_data='back_menu')]
             ]
             
             await update.message.reply_text(
-                "❌ Matndan savol topilmadi.\n\n"
+                "❌ Matndan savol topilmadi!\n\n"
                 "<b>Q/A Format:</b>\n"
                 "Q: Savol?\n"
                 "A: Javob 1\n"
@@ -1024,7 +1104,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return WAITING_FOR_TEXT
         
         # Store temporary data
-        user_id = update.message.from_user.id
+        context.user_data['text_attempts'] = 0  # Reset on success
         user_data[user_id] = {
             'questions': questions,
             'format': format_type
@@ -1040,11 +1120,12 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Text parsing error: {str(e)}")
         keyboard = [
-            [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')]
+            [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')],
+            [InlineKeyboardButton("🏠 Bosh menyu", callback_data='back_menu')]
         ]
         
         await update.message.reply_text(
-            f"❌ Xatolik yuz berdi. Qayta urinib ko'ring.\n\n{str(e)}",
+            f"❌ Xatolik yuz berdi. Qayta urinib ko'ring!",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode='HTML'
         )
@@ -1406,7 +1487,8 @@ def main():
     # Conversation handler for quiz creation and editing
     conv_handler = ConversationHandler(
         entry_points=[
-            CallbackQueryHandler(button_handler)
+            CallbackQueryHandler(button_handler),
+            CommandHandler('startquiz', startquiz_command)
         ],
         states={
             WAITING_FOR_FILE: [
@@ -1448,9 +1530,12 @@ def main():
             WAITING_FOR_QUIZ_ACTION: [
                 CallbackQueryHandler(button_handler)
             ],
+            WAITING_FOR_QUIZ_ID: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_id_handler),
+                CallbackQueryHandler(button_handler)
+            ],
         },
-        fallbacks=[CommandHandler('start', start), CallbackQueryHandler(button_handler)],
-        per_chat_id=True
+        fallbacks=[CommandHandler('start', start), CallbackQueryHandler(button_handler)]
     )
     
     app.add_handler(conv_handler)
@@ -1465,6 +1550,7 @@ def main():
         commands = [
             BotCommand("/start", "Bosh menyu"),
             BotCommand("/newquiz", "Yangi quiz yaratish"),
+            BotCommand("/startquiz", "Quiz boshlash"),
             BotCommand("/quizzes", "Mening quizlarim"),
             BotCommand("/quiz", "Quizni ID orqali boshlash"),
             BotCommand("/stop", "Quizni to'xtatish"),
