@@ -975,13 +975,27 @@ async def file_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return WAITING_FOR_FILE
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle plain text quiz input"""
+    """Handle plain text quiz input - ONLY IN WAITING_FOR_TEXT STATE"""
     text = update.message.text.strip()
     
-    if not text or len(text) < 5:
+    # Check minimum length
+    if not text or len(text) < 10:
+        keyboard = [
+            [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')]
+        ]
+        
         await update.message.reply_text(
-            "❌ Test matni juda qisqa.\n\n"
-            "Iltimos, Q/A yoki raqamli formatda matn jo'nating."
+            "❌ Test matni juda qisqa yoki noto'g'ri formatda.\n\n"
+            "<b>Q/A Format:</b>\n"
+            "Q: Savol?\n"
+            "A: Javob 1\n"
+            "A: To'g'ri javob*\n\n"
+            "<b>Raqamli Format:</b>\n"
+            "1) Savol?\n"
+            "a) Javob 1\n"
+            "b) To'g'ri javob (correct)",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML'
         )
         return WAITING_FOR_TEXT
     
@@ -990,17 +1004,22 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         questions, format_type = TestParser.parse(text)
         
         if not questions:
+            keyboard = [
+                [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')]
+            ]
+            
             await update.message.reply_text(
                 "❌ Matndan savol topilmadi.\n\n"
-                "Formatni tekshiring:\n\n"
-                "**Q/A Format:**\n"
+                "<b>Q/A Format:</b>\n"
                 "Q: Savol?\n"
                 "A: Javob 1\n"
                 "A: To'g'ri javob*\n\n"
-                "**Raqamli Format:**\n"
+                "<b>Raqamli Format:</b>\n"
                 "1) Savol?\n"
                 "a) Javob 1\n"
-                "b) To'g'ri javob (correct)"
+                "b) To'g'ri javob (correct)",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
             )
             return WAITING_FOR_TEXT
         
@@ -1012,15 +1031,23 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         
         # Ask for quiz name
-        text = f"✓ {len(questions)} ta savol topildi! ({format_type})\n\n"
-        text += "Iltimos, quiz nomini kiriting:"
+        text_msg = f"✅ <b>{len(questions)} ta savol topildi!</b> ({format_type})\n\n"
+        text_msg += "Iltimos, quiz nomini kiriting:"
         
-        await update.message.reply_text(text)
+        await update.message.reply_text(text_msg, parse_mode='HTML')
         return WAITING_FOR_QUIZ_NAME
     
     except Exception as e:
-        await update.message.reply_text(f"❌ Xatolik: {str(e)}")
         logger.error(f"Text parsing error: {str(e)}")
+        keyboard = [
+            [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')]
+        ]
+        
+        await update.message.reply_text(
+            f"❌ Xatolik yuz berdi. Qayta urinib ko'ring.\n\n{str(e)}",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML'
+        )
         return WAITING_FOR_TEXT
 
 async def quiz_name_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1422,7 +1449,8 @@ def main():
                 CallbackQueryHandler(button_handler)
             ],
         },
-        fallbacks=[CommandHandler('start', start), CallbackQueryHandler(button_handler)]
+        fallbacks=[CommandHandler('start', start), CallbackQueryHandler(button_handler)],
+        per_chat_id=True
     )
     
     app.add_handler(conv_handler)
