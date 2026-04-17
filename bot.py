@@ -48,6 +48,7 @@ WAITING_FOR_NEW_QUIZ_NAME = 7
 WAITING_FOR_NEW_QUIZ_QUESTION = 8
 WAITING_FOR_NEW_QUIZ_OPTIONS = 9
 WAITING_FOR_NEW_QUIZ_CORRECT = 10
+WAITING_FOR_QUIZ_ACTION = 11
 
 # Store temporary data
 user_data = {}
@@ -1115,26 +1116,89 @@ async def new_quiz_question_handler(update: Update, context: ContextTypes.DEFAUL
 
 async def new_quiz_options_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle new quiz options input"""
-    options_text = update.message.text.strip()
-    options = [opt.strip() for opt in options_text.split('\n') if opt.strip()]
+    try:
+        options_text = update.message.text.strip()
+        
+        # Parse options and find correct answer marked with *
+        raw_options = [opt.strip() for opt in options_text.split('\n') if opt.strip()]
+        
+        logger.info(f"Processing options: {raw_options}")
+        
+        if len(raw_options) < 2:
+            await update.message.reply_text("❌ Kamida 2 ta javob bo'lishi kerak!")
+            return WAITING_FOR_NEW_QUIZ_OPTIONS
+        
+        # Check for * marker and clean options
+        options = []
+        correct_idx = -1
+        
+        for i, opt in enumerate(raw_options):
+            cleaned = opt.strip()
+            # Check if ends with * (case-insensitive check)
+            if '*' in cleaned:
+                # Find position of * and remove it
+                clean_opt = cleaned.replace('*', '').strip()
+                options.append(clean_opt)
+                if correct_idx == -1:  # First one with * is the answer
+                    correct_idx = i
+                logger.info(f"Found correct answer at {i}: {clean_opt}")
+            else:
+                options.append(cleaned)
+        
+        context.user_data['current_options'] = options
+        logger.info(f"Final options: {options}, correct_idx: {correct_idx}")
+        
+        # If we found a * marker, use that as correct answer
+        if correct_idx != -1:
+            context.user_data['correct_option_idx'] = correct_idx
+            
+            # Show confirmation and proceed to next question
+            opts_text = "<b>✓ Javoblar:</b>\n"
+            for i, opt in enumerate(options):
+                mark = "✓" if i == correct_idx else " "
+                opts_text += f"{i}) [{mark}] {opt}\n"
+            
+            keyboard = [
+                [InlineKeyboardButton("➕ Savol qo'shish", callback_data='add_more_question')],
+                [InlineKeyboardButton("✓ Quizni saqlash", callback_data='save_new_quiz')]
+            ]
+            
+            # Add question directly
+            question = {
+                'question': context.user_data['current_question'],
+                'options': options,
+                'correct_option_id': correct_idx
+            }
+            
+            context.user_data['new_quiz_questions'].append(question)
+            logger.info(f"Question added: {question}")
+            
+            await update.message.reply_text(
+                opts_text + f"\n<b>✅ Savol #{len(context.user_data['new_quiz_questions'])} qo'shildi!</b>",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
+            )
+            
+            return WAITING_FOR_QUIZ_ACTION
+        else:
+            # No * marker, ask for correct answer index
+            opts_text = "<b>Javoblar:</b>\n"
+            for i, opt in enumerate(options):
+                opts_text += f"{i}) {opt}\n"
+            
+            logger.info(f"No * marker found, asking user to select")
+            
+            await update.message.reply_text(
+                opts_text + "\n<b>To'g'ri javob raqamini kiriting (0, 1, 2...):</b>",
+                parse_mode='HTML'
+            )
+            
+            return WAITING_FOR_NEW_QUIZ_CORRECT
     
-    if len(options) < 2:
-        await update.message.reply_text("❌ Kamida 2 ta javob bo'lishi kerak!")
+    except Exception as e:
+        logger.error(f"Error in new_quiz_options_handler: {e}")
+        await update.message.reply_text(f"❌ Xato: {str(e)}")
         return WAITING_FOR_NEW_QUIZ_OPTIONS
-    
-    context.user_data['current_options'] = options
-    
-    # Show options with numbers
-    opts_text = "Javoblar:\n"
-    for i, opt in enumerate(options):
-        opts_text += f"{i}) {opt}\n"
-    
-    await update.message.reply_text(
-        opts_text + "\nTo'g'ri javob raqamini kiriting (0, 1, 2...):",
-        parse_mode='Markdown'
-    )
-    
-    return WAITING_FOR_NEW_QUIZ_CORRECT
 
 async def new_quiz_correct_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle correct option selection"""
@@ -1169,7 +1233,7 @@ async def new_quiz_correct_handler(update: Update, context: ContextTypes.DEFAULT
             parse_mode='Markdown'
         )
         
-        return ConversationHandler.END
+        return WAITING_FOR_QUIZ_ACTION
         
     except ValueError:
         await update.message.reply_text("❌ Raqam kiriting!")
@@ -1234,6 +1298,9 @@ def main():
             ],
             WAITING_FOR_NEW_QUIZ_CORRECT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, new_quiz_correct_handler),
+                CallbackQueryHandler(button_handler)
+            ],
+            WAITING_FOR_QUIZ_ACTION: [
                 CallbackQueryHandler(button_handler)
             ],
         },
