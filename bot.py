@@ -180,18 +180,18 @@ async def show_quiz_question(context, chat_id, quiz, show_poll=True):
     question = quiz['questions'][q_index]
     
     # Create poll using Telegram's native poll feature
-    poll_question = f"❓ Savol {q_index + 1}/{len(quiz['questions'])}: {question['question']}"
+    poll_question = question['question']
     poll_options = question['options']
     
     try:
-        # Send poll - using REGULAR type for better control
+        # Send anonymous poll
         poll_msg = await context.bot.send_poll(
             chat_id=chat_id,
             question=poll_question,
             options=poll_options,
-            is_anonymous=False,
+            is_anonymous=True,
             type=Poll.REGULAR,
-            open_period=20  # Poll stays open for 20 seconds
+            open_period=15  # Poll stays open for 15 seconds
         )
         
         # Store poll message ID with question info for answer tracking
@@ -203,18 +203,10 @@ async def show_quiz_question(context, chat_id, quiz, show_poll=True):
             'correct_option': question['correct_option_id']
         }
         
-        # Send message showing correct answer (hint)
-        correct_answer_text = f"✓ To'g'ri javob: {question['options'][question['correct_option_id']]}"
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=correct_answer_text,
-            parse_mode='HTML'
-        )
-        
         # Auto-advance after poll closes (add 2 seconds buffer)
         context.job_queue.run_once(
             advance_quiz_question,
-            when=22,
+            when=17,
             data={'chat_id': chat_id, 'quiz_id': quiz['id'], 'question_index': q_index},
             name=f"advance_quiz_{chat_id}_{q_index}"
         )
@@ -243,6 +235,7 @@ async def advance_quiz_question(context: ContextTypes.DEFAULT_TYPE):
     """Auto-advance to next question after poll closes"""
     job = context.job
     chat_id = job.data['chat_id']
+    question_index = job.data.get('question_index', 0)
     
     if chat_id not in active_quizzes:
         return
@@ -250,6 +243,18 @@ async def advance_quiz_question(context: ContextTypes.DEFAULT_TYPE):
     quiz_data = active_quizzes[chat_id]
     quiz = quiz_data['quiz']
     
+    # Show correct answer
+    if question_index < len(quiz['questions']):
+        question = quiz['questions'][question_index]
+        correct_option = question['options'][question['correct_option_id']]
+        
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"✓ <b>To'g'ri javob:</b> {correct_option}",
+            parse_mode='HTML'
+        )
+    
+    # Move to next question
     quiz_data['current_q'] += 1
     
     if quiz_data['current_q'] >= len(quiz['questions']):
@@ -291,38 +296,15 @@ async def poll_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def show_quiz_results_final(context, chat_id, quiz_data):
     """Show final quiz results"""
     quiz = quiz_data['quiz']
-    answers = quiz_data['answers']
     
-    text = f"🏆 **{quiz['name']} - Natijalar**\n\n"
-    
-    if not answers:
-        text += "Hech kim javob bermadi."
-    else:
-        results_list = []
-        for user_id, user_answers in answers.items():
-            correct = 0
-            total = len(quiz['questions'])
-            
-            for q_index, answer_index in user_answers.items():
-                if q_index < len(quiz['questions']):
-                    if answer_index == quiz['questions'][q_index]['correct_option_id']:
-                        correct += 1
-            
-            percentage = (correct / total * 100) if total > 0 else 0
-            results_list.append((user_id, correct, total, percentage))
-        
-        # Sort by score descending
-        results_list.sort(key=lambda x: x[2], reverse=True)
-        
-        for user_id, correct, total, percentage in results_list:
-            text += f"👤 `{user_id}`: {correct}/{total} ✓ ({percentage:.0f}%)\n"
-        
-        text += f"\n📊 Jami ishtirokchilar: {len(answers)}"
+    text = f"🏆 <b>{quiz['name']} - Yakuniy Natijalar</b>\n\n"
+    text += f"📊 <b>Savollar soni:</b> {len(quiz['questions'])}\n"
+    text += f"✓ Quiz tugallandi! Rahmat qatnashganingiz uchun!\n"
     
     await context.bot.send_message(
         chat_id=chat_id,
         text=text,
-        parse_mode='Markdown'
+        parse_mode='HTML'
     )
     
     # Clean up
