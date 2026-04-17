@@ -1,0 +1,255 @@
+{
+  "id": "7646947734_20260417_112825_Savodxonlik imtihon",
+  "name": "Savodxonlik imtihon",
+  "user_id": 7646947734,
+  "created_at": "2026-04-17T11:28:25.409511",
+  "updated_at": "2026-04-17T11:28:25.409511",
+  "questions": [
+    {
+      "question": "Microsoft Word dasturiga yuklangan joriy hujjatda “Ctrl+End” tugmalar birikmasi bosilsa nima sodir bo‘ladi?",
+      "options": [
+        "Hujjat boshiga o‘tadi",
+        "hujjat sahifasining boshiga o‘tish",
+        "hujjatning oxiriga o‘tish"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturiga qaysi menyudan jadval qo‘shiladi?",
+      "options": [
+        "“Vstavka” menyusi orqali",
+        "“Glavnaya” orqali",
+        "“Maket” menyusi orqali"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturida yangi word hujjat yaratish uchun qaysi menyudan foydalaniladi?",
+      "options": [
+        "Вставка",
+        "Файл",
+        "Главная"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturida matnni qalin holatga keltirish uchun qaysi klaviyaturlar kombinatsiyasidan foydalaniladi?",
+      "options": [
+        "Ctrl + I",
+        "Ctrl + C",
+        "Ctrl + B"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word hujjatni kitobcha (Алъбомная) shakliga keltirish uchun qaysi bolimdan foydalaniladi?",
+      "options": [
+        "Дизайн",
+        "Ссылки",
+        "Макет"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Hujjatga rasm qo'shish uchun qaysi buyruq ishlatiladi?",
+      "options": [
+        "Таблица",
+        "Рисунок",
+        "Диаграмма",
+        "Microsoft Word – bu:",
+        "Elektron jadval muharriri",
+        "Ma’lumotlar ombori",
+        "Matn muharriri"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturida saqlangan yoki oxirgi martta ko‘rilgan fayllarni ochish qaysi klaviyaturlar orqali amalga oshiriladi?",
+      "options": [
+        "Ctrl + O",
+        "Ctrl + N",
+        "Ctrl + J"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturida matnni o‘ngga  tekislash uchun qaysi tugmalar birikmasi ishlatiladi?",
+      "options": [
+        "Ctrl + L",
+        "Ctrl + H",
+        "Ctrl + R"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Word dasturiga vipolnit oynasidan qaysi buyruq orqali to‘g‘ri kirish mumkin?",
+      "options": [
+        "winword",
+        "word",
+        "vinword"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "11. Word dasturida yangi varoq qo‘shish uchun qaysi klaviyatura ishlatiladi?",
+      "options": [
+        "Alt + Tab",
+        "Ctrl + Enter",
+        "Ctrl + Shift"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "12. Word dasturida figura rangini o‘zgartirish uchun qaysi tugma ishlatiladi?",
+      "options": [
+        "Заливка фигуры",
+        "Контур фигуры",
+        "Формат фигуры"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "13. Ctrl + Z tugmalar birikmasi nima uchun ishlatiladi?",
+      "options": [
+        "Amalni qayta tiklash uchun",
+        "Bitta ortga qaytish uchun",
+        "Hammasini belgilash uchun"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "14. Diagramma nima?",
+      "options": [
+        "Raqamli ma’lumotlarni grafik shaklda ko‘rsatuvchi vosita",
+        "Matnli ma’lumotlarni vizual ko‘rinishda ifodalovchi vosita",
+        "Shakl yaratadigan figura"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "15. Word dasturida qator oralig'ini o'zgartirish uchun qaysi tugma ishlatiladi?",
+      "options": [
+        "Абзац",
+        "Вставка",
+        "Интервал",
+        "16. Microsoft Excel – bu:",
+        "ma’lumotlar bazasi",
+        "elektron jadval muharriri",
+        "elektron pochta muharriri"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "17. Microsoft Excelda formulalar yozish qaysi belgidan foydalaniladi?",
+      "options": [
+        "18. A1:A5 diapazonidagi qiymatli kataklar to‘g‘ri sanalgan javobni belgilang",
+        "=МИН(A1:A5)",
+        "=СЧЁТЗ(A1:A5)",
+        "=СЧЁТЗ(A6:A15)",
+        "19. A1:A5 diapazonidagi 10 dan katta va 20 dan kichik qiymatlarni sanang",
+        "=СЧЁТЕСЛИМН(A1:A5; \">10\"; A1:A5; \"<20\")",
+        "=СЧЁТЕСЛИМН(A1:A5; \">=10\"; A1:A5; \"<=20\")",
+        "=СЧЁТЕСЛИМН(A1:A5; \"<10\"; A1:A5; \">20\")",
+        "20. Agar A1 katakdagi qiymat 10 dan katta bo'lsa,  \"Katta\", aks holda \"Kichik\" deb chiqarsin.",
+        "=ЕСЛИ(A1 >= 10; \"Katta\"; \"Kichik\")",
+        "=ЕСЛИ(A1 < 10; \"Katta\"; \"Kichik\")",
+        "=ЕСЛИ(A1 > 10; \"Katta\"; \"Kichik\")",
+        "21. A1:A5 diapazonidagi qiymatlar uchun minimal (eng kichik qiymat) qiymatni toping!",
+        "=МИН(A5:A20)",
+        "=МИН(A1:A5)",
+        "=МАКС(A1:A5)",
+        "22. A1 katakda 2023-yil 13-may sanasini hosil qiling.",
+        "=ДАТА(2023;5;13)",
+        "=ДАТА(2023;13;5)",
+        "=ДАТА(13;5;2023)",
+        "23. A1:A3 kataklardagi qiymatlarni qo'shing (A1 = 2; A2 = 3; A3 = 5)",
+        "=СЕГОДНЯ(yil;oy;sana)",
+        "=СУММ(A1:A3)",
+        "=СРЗНАЧ(A1:A5)",
+        "24. A1:A5 diapazonidagi qiymatlar uchun maksimal (eng katta) qiymatni toping!",
+        "=СЦЕПИТЬ(A1; \" \"; A2. )",
+        "=МАКС(A1:A5)",
+        "=МИН(A1:A5)",
+        "25. A1:A5 diapazonidagi qiymatlar uchun o‘rtacha qiymatni toping!",
+        "=СРЗНАЧ(A1:A5)",
+        "=СРЗНАЧ(A1:A3)",
+        "=СРЗНАЧ(A3:A5)",
+        "26. Bugungi sanani chiqarib beruvchi formula to‘g’ri yozilgan javobni belgilang!",
+        "=СЕГОДНЯ(yil;oy;sana)",
+        "=СУММ(A1:A2)",
+        "=СЕГОДНЯ()",
+        "27. A1 va A2 kataklardagi matnlarni birlashtiring!",
+        "=СЦЕПИТЬ(A1;\" \"; A2)",
+        "=СУММЕСЛИМН(A1:A5, \">10\")",
+        "=СЦЕПИТЬ(A1;A2)",
+        "28. A1:A5 diapazonidagi bo'sh kataklarni sanang!",
+        "=СЧЁТ(A1;A5)",
+        "=СЧИТАТЬПУСТОТЫ(A1:A5)",
+        "=СЕГОДНЯ()"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "29. PowerPoint dasturida yangi slayd qoshish uchun qaysi tugmalar birikmasidan foydalaniladi?",
+      "options": [
+        "Ctrl + M",
+        "Ctrl + T",
+        "Ctrl + B"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "30. Slayddagi matn yoki elementlarga harakat qoshish uchun qaysi bolimdan foydalaniladi?",
+      "options": [
+        "Perexod",
+        "Animatsiya",
+        "Vstavka"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "31. Taqdimotni namoyish qilish uchun qaysi tugma ishlatiladi?",
+      "options": [
+        "Alt",
+        "Esc"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "32. Slaydlar orasidagi o‘tish effektlari qayerda sozlanadi?",
+      "options": [
+        "Perexod",
+        "Dizayn",
+        "Maket"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "33. Slaydga audio qo‘shish uchun qaysi bolimdan foydalaniladi?",
+      "options": [
+        "Animatsiya",
+        "Vstavka",
+        "Vid"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "34. PowerPoint’da slayd fonini o‘zgartirish uchun qaysi tugmadan foydalaniladi?",
+      "options": [
+        "Zalivka figura",
+        "Deystvie",
+        "Format fona"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "35. Taqdimotni PDF formatda saqlash qaysi menyu orqali amalga oshiriladi?",
+      "options": [
+        "Филе > Сохранит как",
+        "Вставка > Сохранит как",
+        "Вид > Сохранит как"
+      ],
+      "correct_option_id": 0
+    }
+  ]
+}

@@ -62,6 +62,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📄 Test faylini jo'natish", callback_data='upload_test')],
         [InlineKeyboardButton("📝 Test matnini jo'natish", callback_data='text_input')],
         [InlineKeyboardButton("➕ Quiz testlar yaratish", callback_data='create_new_quiz')],
+        [InlineKeyboardButton("▶️ Quizni boshlash", callback_data='start_quiz_menu')],
         [InlineKeyboardButton("📋 Mening quizlarim", callback_data='my_quizzes')],
         [InlineKeyboardButton("❓ Qo'llanma", callback_data='help')]
     ]
@@ -389,6 +390,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📄 Test faylini jo'natish", callback_data='upload_test')],
             [InlineKeyboardButton("📝 Test matnini jo'natish", callback_data='text_input')],
             [InlineKeyboardButton("➕ Quiz testlar yaratish", callback_data='create_new_quiz')],
+            [InlineKeyboardButton("▶️ Quizni boshlash", callback_data='start_quiz_menu')],
             [InlineKeyboardButton("📋 Mening quizlarim", callback_data='my_quizzes')],
             [InlineKeyboardButton("❓ Qo'llanma", callback_data='help')]
         ]
@@ -398,6 +400,91 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "👋 Quiz Bot-ga xush kelibsiz!",
             reply_markup=reply_markup
         )
+        return ConversationHandler.END
+    
+    elif query.data == 'confirm_save_quiz':
+        # Save the quiz
+        user_id = query.from_user.id
+        quiz_name = context.user_data.get('quiz_name')
+        quiz_questions = context.user_data.get('quiz_questions', [])
+        
+        if not quiz_name or not quiz_questions:
+            await query.edit_message_text("❌ Xatolik bor'di. Qayta urinib ko'ring.")
+            return ConversationHandler.END
+        
+        # Save quiz
+        quiz_id = storage.save_quiz(quiz_name, quiz_questions, user_id)
+        
+        # Clear temporary data
+        if user_id in user_data:
+            del user_data[user_id]
+        
+        # Show success message
+        text = f"✅ <b>Quiz saqlandi!</b>\n\n"
+        text += f"📌 <b>Nom:</b> {quiz_name}\n"
+        text += f"📊 <b>Savollar:</b> {len(quiz_questions)}\n"
+        
+        keyboard = [
+            [InlineKeyboardButton("▶️ Boshlash", callback_data=f'start_quiz_{quiz_id}')],
+            [InlineKeyboardButton("✏️ Tahrirlash", callback_data=f'edit_{quiz_id}')],
+            [InlineKeyboardButton("📋 Mening quizlarim", callback_data='my_quizzes')],
+            [InlineKeyboardButton("📄 Yangi test", callback_data='upload_test')]
+        ]
+        
+        await query.edit_message_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML'
+        )
+        
+        return ConversationHandler.END
+    
+    elif query.data == 'edit_before_save':
+        # Show questions for editing before saving
+        quiz_questions = context.user_data.get('quiz_questions', [])
+        
+        text = "<b>✏️ Tahrirlash uchun savol tanlang:</b>\n\n"
+        keyboard = []
+        
+        for i, q in enumerate(quiz_questions):
+            text += f"{i+1}. {q['question']}\n"
+            keyboard.append([InlineKeyboardButton(
+                f"✏️ Savol {i+1}",
+                callback_data=f'edit_q_before_{i}'
+            )])
+        
+        keyboard.append([InlineKeyboardButton("✅ Saqlash", callback_data='confirm_save_quiz')])
+        keyboard.append([InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')])
+        
+        await query.edit_message_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML'
+        )
+        
+        return ConversationHandler.END
+    
+    elif query.data == 'cancel_quiz':
+        # Cancel and go back to menu
+        user_id = query.from_user.id
+        if user_id in user_data:
+            del user_data[user_id]
+        
+        keyboard = [
+            [InlineKeyboardButton("📄 Test faylini jo'natish", callback_data='upload_test')],
+            [InlineKeyboardButton("📝 Test matnini jo'natish", callback_data='text_input')],
+            [InlineKeyboardButton("➕ Quiz testlar yaratish", callback_data='create_new_quiz')],
+            [InlineKeyboardButton("▶️ Quizni boshlash", callback_data='start_quiz_menu')],
+            [InlineKeyboardButton("📋 Mening quizlarim", callback_data='my_quizzes')],
+            [InlineKeyboardButton("❓ Qo'llanma", callback_data='help')]
+        ]
+        
+        await query.edit_message_text(
+            "❌ Bekor qilindi.\n\n👋 Quiz Bot-ga xush kelibsiz!",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML'
+        )
+        
         return ConversationHandler.END
     
     elif query.data == 'add_more_question':
@@ -459,6 +546,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Show first question
         await show_quiz_question(context, chat_id, quiz)
+        return ConversationHandler.END
+    
+    elif query.data == 'start_quiz_menu':
+        quizzes = storage.get_user_quizzes(user_id)
+        
+        if not quizzes:
+            await query.edit_message_text("Sizda hali quizlar yo'q.\n\nAvval quiz yaratishingiz kerak!")
+            return ConversationHandler.END
+        
+        text = "▶️ <b>Quizni boshlash</b>\n\n"
+        text += "<b>Qaysi quizni boshlaylik?</b>\n\n"
+        keyboard = []
+        
+        for quiz in quizzes[:10]:  # Show last 10
+            text += f"📌 {quiz['name']} ({len(quiz['questions'])} savol)\n"
+            keyboard.append([InlineKeyboardButton(
+                f"▶️ {quiz['name']}",
+                callback_data=f"start_quiz_{quiz['id']}"
+            )])
+        
+        keyboard.append([InlineKeyboardButton("◀️ Orqaga", callback_data='back_menu')])
+        
+        await query.edit_message_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML'
+        )
         return ConversationHandler.END
     
     elif query.data == 'my_quizzes':
@@ -924,28 +1038,34 @@ async def quiz_name_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Xatolik bor'di. Qayta urinib ko'ring.")
         return ConversationHandler.END
     
-    # Save quiz
-    quiz_id = storage.save_quiz(quiz_name, quiz_data['questions'], user_id)
+    # Store quiz name temporarily for preview
+    context.user_data['quiz_name'] = quiz_name
+    context.user_data['quiz_questions'] = quiz_data['questions']
     
-    # Clear temporary data
-    if user_id in user_data:
-        del user_data[user_id]
+    # Show preview of questions
+    text = f"<b>📋 Quiz Preview</b>\n\n"
+    text += f"<b>Nom:</b> {quiz_name}\n"
+    text += f"<b>Savollar:</b> {len(quiz_data['questions'])}\n\n"
     
-    # Show success message
-    text = f"✓ **Quiz tayyor!**\n\n"
-    text += f"📌 Nom: {quiz_name}\n"
-    text += f"📊 Savollar: {len(quiz_data['questions'])}\n"
+    text += "<b>Savollar ro'yxati:</b>\n"
+    for i, q in enumerate(quiz_data['questions'][:5], 1):  # Show first 5
+        correct_opt = q['options'][q.get('correct_option_id', 0)]
+        text += f"{i}. {q['question']}\n"
+        text += f"   ✓ {correct_opt}\n"
+    
+    if len(quiz_data['questions']) > 5:
+        text += f"\n... va {len(quiz_data['questions']) - 5} ta ko'proq savol"
     
     keyboard = [
-        [InlineKeyboardButton("✏️ Tahrirlash", callback_data=f'edit_{quiz_id}')],
-        [InlineKeyboardButton("📋 Mening quizlarim", callback_data='my_quizzes')],
-        [InlineKeyboardButton("📄 Yangi test", callback_data='upload_test')]
+        [InlineKeyboardButton("✅ Saqlash", callback_data='confirm_save_quiz')],
+        [InlineKeyboardButton("📝 Tahrirlash", callback_data='edit_before_save')],
+        [InlineKeyboardButton("❌ Bekor qilish", callback_data='cancel_quiz')]
     ]
     
     await update.message.reply_text(
         text,
         reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
+        parse_mode='HTML'
     )
     
     return ConversationHandler.END
@@ -1259,7 +1379,6 @@ def main():
     # Conversation handler for quiz creation and editing
     conv_handler = ConversationHandler(
         entry_points=[
-            MessageHandler(filters.Document.ALL, file_handler),
             MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler),
             CallbackQueryHandler(button_handler)
         ],
