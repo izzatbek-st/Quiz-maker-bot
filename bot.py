@@ -1379,7 +1379,6 @@ def main():
     # Conversation handler for quiz creation and editing
     conv_handler = ConversationHandler(
         entry_points=[
-            MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler),
             CallbackQueryHandler(button_handler)
         ],
         states={
