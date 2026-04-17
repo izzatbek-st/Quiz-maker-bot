@@ -1,12 +1,39 @@
 #!/usr/bin/env python3
-"""Test all format parsers"""
+"""Test all format parsers with poll-style display"""
 
 from test_parser import TestParser
 
+def display_poll(test_num, test_name, questions, format_type):
+    """Display quiz in poll interface style"""
+    print("\n")
+    print("┌" + "─" * 78 + "┐")
+    print("│" + f" TEST {test_num}: {test_name}".ljust(78) + "│")
+    print("├" + "─" * 78 + "┤")
+    
+    for q_idx, q in enumerate(questions, 1):
+        print("│" + " " * 78 + "│")
+        print("│" + f"  📋 Quiz Test #{q_idx}".ljust(78) + "│")
+        print("│" + f"  Anonymous Poll".ljust(78) + "│")
+        print("│" + " " * 78 + "│")
+        print("│" + f"  ❓ {q['question']}".ljust(78) + "│")
+        print("│" + " " * 78 + "│")
+        
+        # Display options with checkboxes
+        for opt_idx, option in enumerate(q['options']):
+            checkbox = "☑️ " if opt_idx == q.get('correct_option_id', -1) else "☐ "
+            option_text = f"{checkbox}{option}"
+            print("│" + f"  {option_text}".ljust(78) + "│")
+        
+        print("│" + " " * 78 + "│")
+        print("│" + "  [Vote]".ljust(78) + "│")
+        print("│" + " " * 78 + "│")
+        print("│" + f"  ❤️  {q_idx}    👁 {len(q['options'])} votes    23:58".ljust(78) + "│")
+        print("├" + "─" * 78 + "┤")
+    
+    print("│" + f" Format: {format_type} | Total Questions: {len(questions)}".ljust(78) + "│")
+    print("└" + "─" * 78 + "┘")
+
 # Test 1: Simple Numbered format
-print("=" * 50)
-print("TEST 1: Simple Numbered Format")
-print("=" * 50)
 test1 = """1 Olma nima?
 a meva
 b piyoz
@@ -18,14 +45,9 @@ b yomg'in
 c suv"""
 
 q1, fmt1 = TestParser.parse(test1)
-print(f"Format: {fmt1}, Questions: {len(q1)}")
-for q in q1:
-    print(f"  • {q['question']} -> {len(q['options'])} options")
+display_poll(1, "Simple Numbered Format", q1, fmt1)
 
 # Test 2: Numbered with parenthesis (original)
-print("\n" + "=" * 50)
-print("TEST 2: Numbered Format (with parenthesis)")
-print("=" * 50)
 test2 = """1) Olma nima?
 a) meva
 b) piyoz (correct)
@@ -37,14 +59,9 @@ b) yomg'in (correct)
 c) suv"""
 
 q2, fmt2 = TestParser.parse(test2)
-print(f"Format: {fmt2}, Questions: {len(q2)}")
-for q in q2:
-    print(f"  • {q['question']} -> {len(q['options'])} options")
+display_poll(2, "Numbered Format (with parenthesis)", q2, fmt2)
 
 # Test 3: Q/A Format
-print("\n" + "=" * 50)
-print("TEST 3: Q/A Format")
-print("=" * 50)
 test3 = """Q: Olma nima?
 A: meva
 A: piyoz
@@ -56,14 +73,9 @@ A: yomg'in
 A: suv"""
 
 q3, fmt3 = TestParser.parse(test3)
-print(f"Format: {fmt3}, Questions: {len(q3)}")
-for q in q3:
-    print(f"  • {q['question']} -> {len(q['options'])} options")
+display_poll(3, "Q/A Format", q3, fmt3)
 
 # Test 4: Unnumbered format
-print("\n" + "=" * 50)
-print("TEST 4: Unnumbered Format")
-print("=" * 50)
 test4 = """Olma nima?
 meva
 piyoz
@@ -75,14 +87,9 @@ yomg'in
 suv"""
 
 q4, fmt4 = TestParser.parse(test4)
-print(f"Format: {fmt4}, Questions: {len(q4)}")
-for q in q4:
-    print(f"  • {q['question']} -> {len(q['options'])} options")
+display_poll(4, "Unnumbered Format", q4, fmt4)
 
 # Test 5: Mixed with correct markers
-print("\n" + "=" * 50)
-print("TEST 5: Simple Numbered with correct marker")
-print("=" * 50)
 test5 = """1 Olma nima?
 a meva*
 b piyoz
@@ -94,13 +101,8 @@ b yomg'in (to'g'ri)
 c suv"""
 
 q5, fmt5 = TestParser.parse(test5)
-print(f"Format: {fmt5}, Questions: {len(q5)}")
-for i, q in enumerate(q5):
-    correct_idx = q['correct_option_id']
-    correct_option = q['options'][correct_idx] if correct_idx < len(q['options']) else "?"
-    print(f"  • {q['question']}")
-    print(f"    Correct: {chr(97 + correct_idx)}) {correct_option}")
+display_poll(5, "Simple Numbered with correct marker", q5, fmt5)
 
-print("\n" + "=" * 50)
-print("All tests completed successfully!")
-print("=" * 50)
+print("\n" + "╔" + "═" * 78 + "╗")
+print("║" + "✅ All tests completed successfully!".center(78) + "║")
+print("╚" + "═" * 78 + "╝")

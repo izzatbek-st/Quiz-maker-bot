@@ -3,10 +3,10 @@ import os
 import logging
 import io
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, Poll
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, CallbackQueryHandler,
-    ContextTypes, ConversationHandler, filters
+    ContextTypes, ConversationHandler, filters, PollAnswerHandler
 )
 
 from test_parser import TestParser
@@ -152,7 +152,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     
     await update.message.reply_text(f"▶️ Quiz boshlanmoqda: *{quiz['name']}*", parse_mode='Markdown')
-    await show_quiz_question(update.message, chat_id, quiz)
+    await show_quiz_question(context, chat_id, quiz)
 
 async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Stop active quiz"""
@@ -164,8 +164,8 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Hozir faol quiz yo'q.")
 
-async def show_quiz_question(message, chat_id, quiz):
-    """Show current quiz question"""
+async def show_quiz_question(context, chat_id, quiz, show_poll=True):
+    """Show current quiz question using Telegram polls"""
     if chat_id not in active_quizzes:
         return
     
@@ -174,61 +174,156 @@ async def show_quiz_question(message, chat_id, quiz):
     
     if q_index >= len(quiz['questions']):
         # Quiz complete
-        await show_quiz_results(message, chat_id, quiz_data)
+        await show_quiz_results_final(context, chat_id, quiz_data)
         return
     
     question = quiz['questions'][q_index]
     
-    text = f"❓ **Savol {q_index + 1}/{len(quiz['questions'])}**\n\n"
-    text += f"{question['question']}\n\n"
+    # Create poll using Telegram's native poll feature
+    poll_question = f"❓ Savol {q_index + 1}/{len(quiz['questions'])}: {question['question']}"
+    poll_options = question['options']
     
-    keyboard = []
-    for i, option in enumerate(question['options']):
-        keyboard.append([InlineKeyboardButton(
-            f"{chr(97+i)}) {option}",
-            callback_data=f"q_answer_{q_index}_{i}"
-        )])
-    
-    keyboard.append([InlineKeyboardButton(
-        "⏭️ Keyingi savol", 
-        callback_data=f"q_next_{q_index}"
-    )])
-    
-    await message.reply_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
-    )
+    try:
+        # Send poll - using REGULAR type for better control
+        poll_msg = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=poll_question,
+            options=poll_options,
+            is_anonymous=False,
+            type=Poll.REGULAR,
+            open_period=20  # Poll stays open for 20 seconds
+        )
+        
+        # Store poll message ID with question info for answer tracking
+        if 'poll_messages' not in quiz_data:
+            quiz_data['poll_messages'] = {}
+        
+        quiz_data['poll_messages'][poll_msg.message_id] = {
+            'question_index': q_index,
+            'correct_option': question['correct_option_id']
+        }
+        
+        # Send message showing correct answer (hint)
+        correct_answer_text = f"✓ To'g'ri javob: {question['options'][question['correct_option_id']]}"
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=correct_answer_text,
+            parse_mode='HTML'
+        )
+        
+        # Auto-advance after poll closes (add 2 seconds buffer)
+        context.job_queue.run_once(
+            advance_quiz_question,
+            when=22,
+            data={'chat_id': chat_id, 'quiz_id': quiz['id'], 'question_index': q_index},
+            name=f"advance_quiz_{chat_id}_{q_index}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Poll sending error: {e}")
+        # Fallback to inline keyboard if poll fails
+        keyboard = []
+        for i, option in enumerate(question['options']):
+            keyboard.append([InlineKeyboardButton(
+                f"{chr(97+i)}) {option}",
+                callback_data=f"q_answer_{q_index}_{i}"
+            )])
+        
+        text = f"❓ <b>Savol {q_index + 1}/{len(quiz['questions'])}</b>\n\n"
+        text += f"{question['question']}\n\n"
+        
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML'
+        )
 
-async def show_quiz_results(message, chat_id, quiz_data):
-    """Show quiz results"""
+async def advance_quiz_question(context: ContextTypes.DEFAULT_TYPE):
+    """Auto-advance to next question after poll closes"""
+    job = context.job
+    chat_id = job.data['chat_id']
+    
+    if chat_id not in active_quizzes:
+        return
+    
+    quiz_data = active_quizzes[chat_id]
+    quiz = quiz_data['quiz']
+    
+    quiz_data['current_q'] += 1
+    
+    if quiz_data['current_q'] >= len(quiz['questions']):
+        await show_quiz_results_final(context, chat_id, quiz_data)
+    else:
+        await show_quiz_question(context, chat_id, quiz)
+
+async def poll_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle poll answers from users"""
+    if update.poll_answer:
+        poll_answer = update.poll_answer
+        user_id = poll_answer.user_id
+        selected_options = poll_answer.option_ids
+        
+        if not selected_options:
+            return
+        
+        selected_option = selected_options[0]  # Get first (and usually only) selected option
+        
+        # Find the quiz that has this poll
+        # Since poll_answer doesn't include chat_id, we need to search through active_quizzes
+        for chat_id, quiz_data in list(active_quizzes.items()):
+            if 'poll_messages' not in quiz_data:
+                continue
+                
+            # Look for this poll in the current quiz
+            for poll_msg_id, poll_info in quiz_data['poll_messages'].items():
+                # Since we can't directly match poll_id, we'll record answer for the current question
+                q_index = quiz_data['current_q'] - 1  # Previous question (just answered)
+                
+                if q_index >= 0 and q_index < len(quiz_data['quiz']['questions']):
+                    if user_id not in quiz_data['answers']:
+                        quiz_data['answers'][user_id] = {}
+                    
+                    quiz_data['answers'][user_id][q_index] = selected_option
+                    logger.info(f"Recorded answer: user={user_id}, chat={chat_id}, question={q_index}, answer={selected_option}")
+                    break
+
+async def show_quiz_results_final(context, chat_id, quiz_data):
+    """Show final quiz results"""
     quiz = quiz_data['quiz']
     answers = quiz_data['answers']
     
     text = f"🏆 **{quiz['name']} - Natijalar**\n\n"
     
-    results_list = []
-    for user_id, user_answers in answers.items():
-        correct = 0
-        total = len(quiz['questions'])
+    if not answers:
+        text += "Hech kim javob bermadi."
+    else:
+        results_list = []
+        for user_id, user_answers in answers.items():
+            correct = 0
+            total = len(quiz['questions'])
+            
+            for q_index, answer_index in user_answers.items():
+                if q_index < len(quiz['questions']):
+                    if answer_index == quiz['questions'][q_index]['correct_option_id']:
+                        correct += 1
+            
+            percentage = (correct / total * 100) if total > 0 else 0
+            results_list.append((user_id, correct, total, percentage))
         
-        for q_index, answer_index in user_answers.items():
-            if q_index < len(quiz['questions']):
-                if answer_index == quiz['questions'][q_index]['correct_option_id']:
-                    correct += 1
+        # Sort by score descending
+        results_list.sort(key=lambda x: x[2], reverse=True)
         
-        percentage = (correct / total * 100) if total > 0 else 0
-        results_list.append((user_id, correct, total, percentage))
+        for user_id, correct, total, percentage in results_list:
+            text += f"👤 `{user_id}`: {correct}/{total} ✓ ({percentage:.0f}%)\n"
+        
+        text += f"\n📊 Jami ishtirokchilar: {len(answers)}"
     
-    # Sort by score descending
-    results_list.sort(key=lambda x: x[2], reverse=True)
-    
-    for user_id, correct, total, percentage in results_list:
-        text += f"👤 `{user_id}`: {correct}/{total} ✓ ({percentage:.0f}%)\n"
-    
-    text += f"\n📊 Jami ishtirokchilar: {len(answers)}"
-    
-    await message.reply_text(text, parse_mode='Markdown')
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        parse_mode='Markdown'
+    )
     
     # Clean up
     if chat_id in active_quizzes:
@@ -380,7 +475,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("Quiz boshlanmoqda...")
         
         # Show first question
-        await show_quiz_question(query.message, chat_id, quiz)
+        await show_quiz_question(context, chat_id, quiz)
         return ConversationHandler.END
     
     elif query.data == 'my_quizzes':
@@ -432,11 +527,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         quiz = active_quizzes[chat_id]['quiz']
         if q_index >= len(quiz['questions']) - 1:
             # Last question - show results immediately
-            await show_quiz_results(query.message, chat_id, active_quizzes[chat_id])
+            await show_quiz_results_final(context, chat_id, active_quizzes[chat_id])
         else:
             # More questions - show next question
             active_quizzes[chat_id]['current_q'] = q_index + 1
-            await show_quiz_question(query.message, chat_id, quiz)
+            await show_quiz_question(context, chat_id, quiz)
         
         return ConversationHandler.END
     
@@ -453,9 +548,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         quiz = active_quizzes[chat_id]['quiz']
         
         if active_quizzes[chat_id]['current_q'] >= len(quiz['questions']):
-            await show_quiz_results(query.message, chat_id, active_quizzes[chat_id])
+            await show_quiz_results_final(context, chat_id, active_quizzes[chat_id])
         else:
-            await show_quiz_question(query.message, chat_id, quiz)
+            await show_quiz_question(context, chat_id, quiz)
         return ConversationHandler.END
     
     elif query.data.startswith('quiz_'):
@@ -991,7 +1086,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     # Show first question
-    await show_quiz_question(update.message, chat_id, quiz)
+    await show_quiz_question(context, chat_id, quiz)
 
 async def new_quiz_name_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle new quiz name input"""
@@ -1164,6 +1259,9 @@ def main():
     )
     
     app.add_handler(conv_handler)
+    
+    # Add poll answer handler
+    app.add_handler(PollAnswerHandler(poll_answer_handler))
     
     # Set bot commands
     async def set_commands(app):
