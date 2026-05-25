@@ -1,0 +1,59 @@
+{
+  "id": "8047065619_20260417_134952_Q1",
+  "name": "Q1",
+  "user_id": 8047065619,
+  "created_at": "2026-04-17T13:49:52.623355",
+  "updated_at": "2026-04-17T13:49:52.623355",
+  "questions": [
+    {
+      "question": "Python qaysi tilida yozilgan?",
+      "options": [
+        "C++",
+        "Java",
+        "C#",
+        "Go"
+      ],
+      "correct_option_id": 0
+    },
+    {
+      "question": "Python versiyasi nechta?",
+      "options": [
+        "Python 2",
+        "Python 3",
+        "Python 4",
+        "Python 5"
+      ],
+      "correct_option_id": 1
+    },
+    {
+      "question": "Django nima?",
+      "options": [
+        "Ma'lumot bazasi",
+        "Python web framework",
+        "Grafik kutubxona",
+        "Mobil ilovasi"
+      ],
+      "correct_option_id": 1
+    },
+    {
+      "question": "JSON qanday format?",
+      "options": [
+        "Matn formati",
+        "Rasm formati",
+        "Ma'lumot almashtirish formati",
+        "Video formati"
+      ],
+      "correct_option_id": 2
+    },
+    {
+      "question": "Terminal nima?",
+      "options": [
+        "Grafik interfeys",
+        "Buyruq qatori interfeys",
+        "Brauzer",
+        "Grafik redaktor"
+      ],
+      "correct_option_id": 1
+    }
+  ]
+}

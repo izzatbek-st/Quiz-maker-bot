@@ -183,40 +183,52 @@ async def startquiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def quiz_id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle quiz ID input for starting quiz"""
-    quiz_id = update.message.text.strip()
-    
-    if not quiz_id or len(quiz_id) < 3:
-        await update.message.reply_text(
-            "❌ Quiz ID juda qisqa!\n\n"
-            "Iltimos, to'g'ri ID kiriting.",
-            parse_mode='HTML'
-        )
+    try:
+        quiz_id = update.message.text.strip()
+        logger.info(f"Quiz ID handler called with: {quiz_id}")
+        
+        if not quiz_id or len(quiz_id) < 3:
+            await update.message.reply_text(
+                "❌ Quiz ID juda qisqa!\n\n"
+                "Iltimos, to'g'ri ID kiriting.",
+                parse_mode='HTML'
+            )
+            return WAITING_FOR_QUIZ_ID
+        
+        logger.info(f"Searching for quiz: {quiz_id}")
+        quiz = storage.get_quiz(quiz_id)
+        logger.info(f"Quiz found: {quiz is not None}")
+        
+        if not quiz:
+            keyboard = [[InlineKeyboardButton("🏠 Bosh menyu", callback_data='back_menu')]]
+            await update.message.reply_text(
+                f"❌ Quiz topilmadi: <code>{quiz_id}</code>\n\n"
+                "Iltimos, mavjud ID-lardan birini kiriting.",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
+            )
+            return WAITING_FOR_QUIZ_ID
+        
+        # Start quiz
+        chat_id = update.message.chat_id
+        logger.info(f"Starting quiz {quiz_id} for chat {chat_id}")
+        
+        active_quizzes[chat_id] = {
+            'quiz': quiz,
+            'current_q': 0,
+            'answers': {}
+        }
+        
+        await update.message.reply_text(f"▶️ Quiz boshlanmoqda: <b>{quiz['name']}</b>", parse_mode='HTML')
+        await show_quiz_question(context, chat_id, quiz)
+        logger.info(f"Quiz started successfully for {chat_id}")
+        
+        return ConversationHandler.END
+        
+    except Exception as e:
+        logger.error(f"Quiz ID handler error: {str(e)}", exc_info=True)
+        await update.message.reply_text(f"❌ Xatolik: {str(e)}")
         return WAITING_FOR_QUIZ_ID
-    
-    quiz = storage.get_quiz(quiz_id)
-    
-    if not quiz:
-        keyboard = [[InlineKeyboardButton("🏠 Bosh menyu", callback_data='back_menu')]]
-        await update.message.reply_text(
-            f"❌ Quiz topilmadi: <code>{quiz_id}</code>\n\n"
-            "Iltimos, mavjud ID-lardan birini kiriting.",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='HTML'
-        )
-        return WAITING_FOR_QUIZ_ID
-    
-    # Start quiz
-    chat_id = update.message.chat_id
-    active_quizzes[chat_id] = {
-        'quiz': quiz,
-        'current_q': 0,
-        'answers': {}
-    }
-    
-    await update.message.reply_text(f"▶️ Quiz boshlanmoqda: <b>{quiz['name']}</b>", parse_mode='HTML')
-    await show_quiz_question(context, chat_id, quiz)
-    
-    return ConversationHandler.END
 
 async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Stop active quiz"""
@@ -243,9 +255,14 @@ async def show_quiz_question(context, chat_id, quiz, show_poll=True):
     
     question = quiz['questions'][q_index]
     
-    # Create poll using Telegram's native poll feature
-    poll_question = question['question']
-    poll_options = question['options']
+    # Validate and prepare poll data
+    poll_question = question['question'][:255]  # Max 255 chars for question
+    poll_options = []
+    
+    # Validate and truncate options (max 100 chars each, max 10 options)
+    for option in question['options'][:10]:
+        option_text = str(option)[:100]  # Max 100 chars per option
+        poll_options.append(option_text)
     
     try:
         # Send anonymous poll
@@ -268,32 +285,26 @@ async def show_quiz_question(context, chat_id, quiz, show_poll=True):
         }
         
         # Auto-advance after poll closes (add 2 seconds buffer)
-        context.job_queue.run_once(
-            advance_quiz_question,
-            when=17,
-            data={'chat_id': chat_id, 'quiz_id': quiz['id'], 'question_index': q_index},
-            name=f"advance_quiz_{chat_id}_{q_index}"
-        )
+        job_queue = getattr(context.application, 'job_queue', None)
+        if job_queue is not None:
+            job_queue.run_once(
+                advance_quiz_question,
+                when=17,
+                data={'chat_id': chat_id, 'quiz_id': quiz['id'], 'question_index': q_index},
+                name=f"advance_quiz_{chat_id}_{q_index}"
+            )
+        else:
+            logger.warning(
+                "JobQueue is not available; poll auto-advance will not work for chat %s question %s",
+                chat_id,
+                q_index
+            )
         
     except Exception as e:
         logger.error(f"Poll sending error: {e}")
-        # Fallback to inline keyboard if poll fails
-        keyboard = []
-        for i, option in enumerate(question['options']):
-            keyboard.append([InlineKeyboardButton(
-                f"{chr(97+i)}) {option}",
-                callback_data=f"q_answer_{q_index}_{i}"
-            )])
-        
-        text = f"❓ <b>Savol {q_index + 1}/{len(quiz['questions'])}</b>\n\n"
-        text += f"{question['question']}\n\n"
-        
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='HTML'
-        )
+        # If poll fails, just log it - don't send fallback buttons
+        # This prevents duplicate question formats
+        logger.warning(f"Could not auto-advance poll for question {q_index}", exc_info=True)
 
 async def advance_quiz_question(context: ContextTypes.DEFAULT_TYPE):
     """Auto-advance to next question after poll closes"""
@@ -358,12 +369,41 @@ async def poll_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
                     break
 
 async def show_quiz_results_final(context, chat_id, quiz_data):
-    """Show final quiz results"""
+    """Show final quiz results with score breakdown"""
     quiz = quiz_data['quiz']
+    user_answers = quiz_data.get('answers', {})
+    
+    # Calculate scores
+    total_questions = len(quiz['questions'])
+    correct_count = 0
+    incorrect_count = 0
+    
+    for i, question in enumerate(quiz['questions']):
+        user_answer = user_answers.get(i)
+        if user_answer == question['correct_option_id']:
+            correct_count += 1
+        else:
+            incorrect_count += 1
+    
+    percentage = (correct_count / total_questions * 100) if total_questions > 0 else 0
+    
+    # Determine rating
+    if percentage >= 90:
+        rating = "🌟 Zo'r natija!"
+    elif percentage >= 70:
+        rating = "👍 Yaxshi natija!"
+    elif percentage >= 50:
+        rating = "📈 Yetarli natija!"
+    else:
+        rating = "💪 Yana harakat qilish kerak!"
     
     text = f"🏆 <b>{quiz['name']} - Yakuniy Natijalar</b>\n\n"
-    text += f"📊 <b>Savollar soni:</b> {len(quiz['questions'])}\n"
-    text += f"✓ Quiz tugallandi! Rahmat qatnashganingiz uchun!\n"
+    text += f"📊 <b>Jami savollar:</b> {total_questions}\n"
+    text += f"✅ <b>To'g'ri javoblar:</b> {correct_count}\n"
+    text += f"❌ <b>Xato javoblar:</b> {incorrect_count}\n"
+    text += f"📈 <b>Foiz:</b> {percentage:.1f}%\n\n"
+    text += f"{rating}\n\n"
+    text += f"Rahmat qatnashganingiz uchun! 🙏"
     
     await context.bot.send_message(
         chat_id=chat_id,
@@ -1473,7 +1513,7 @@ def main():
         logger.error("TELEGRAM_BOT_TOKEN not found in .env file!")
         return
     
-    # Create application
+    # Create application normally
     app = Application.builder().token(TOKEN).build()
     
     # Add command handlers
